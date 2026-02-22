@@ -1,45 +1,53 @@
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-import os
 from sqlalchemy import create_engine, text
+import os
+
+# =============================
+# DATABASE CONNECTION
+# =============================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 engine = create_engine(DATABASE_URL)
 
-# Auto-create tables on startup
+# =============================
+# CREATE TABLES ON STARTUP
+# =============================
+
 with engine.connect() as conn:
-    conn.execute(text("""
-    CREATE TABLE IF NOT EXISTS cars (
-        id SERIAL PRIMARY KEY,
-        name TEXT,
-        price TEXT,
-        image TEXT
-    );
-    """))
 
     conn.execute(text("""
-    CREATE TABLE IF NOT EXISTS bookings (
+    CREATE TABLE IF NOT EXISTS queue (
         id SERIAL PRIMARY KEY,
-        car TEXT,
-        email TEXT,
-        status TEXT DEFAULT 'pending'
+        reg TEXT,
+        service TEXT,
+        vehicle TEXT,
+        time INTEGER,
+        price INTEGER
     );
     """))
 
     conn.commit()
+
+# =============================
+# APP SETUP
+# =============================
+
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# Simple login credentials
+# =============================
+# LOGIN CREDENTIALS
+# =============================
+
 MANAGER_EMAIL = "Kawadzatanakalionel@gmail.com"
 MANAGER_PASSWORD = "@123456789"
 
-# In-memory queue
-queue = []
+# =============================
+# SERVICE CONFIG
+# =============================
 
-# Service presets
 services = {
     "Express Wash": {"time": 20, "price": 80},
     "Full Wash": {"time": 45, "price": 180},
@@ -56,6 +64,9 @@ vehicle_multiplier = {
     "Truck": 2.2,
 }
 
+# =============================
+# ROUTES
+# =============================
 
 @app.get("/", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -87,7 +98,6 @@ async def dashboard(request: Request):
         {
             "request": request,
             "login": False,
-            "queue": queue,
             "services": services.keys(),
             "vehicles": vehicle_multiplier.keys(),
         }
@@ -100,22 +110,29 @@ async def add_car(
     service: str = Form(...),
     vehicle: str = Form(...)
 ):
+
     base = services[service]
     mult = vehicle_multiplier[vehicle]
 
-    queue.append({
-        "reg": reg,
-        "service": service,
-        "vehicle": vehicle,
-        "time": int(base["time"] * mult),
-        "price": int(base["price"] * mult)
-    })
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO queue (reg, service, vehicle, time, price)
+            VALUES (:reg, :service, :vehicle, :time, :price)
+        """), {
+            "reg": reg,
+            "service": service,
+            "vehicle": vehicle,
+            "time": int(base["time"] * mult),
+            "price": int(base["price"] * mult)
+        })
+        conn.commit()
 
     return RedirectResponse("/dashboard", status_code=302)
-from fastapi.responses import JSONResponse
 
-jobs = []
 
 @app.get("/queue-data")
 def get_queue_data():
-    return JSONResponse(content=jobs)
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT * FROM queue ORDER BY id DESC"))
+        rows = result.mappings().all()
+    return JSONResponse(content=rows)
