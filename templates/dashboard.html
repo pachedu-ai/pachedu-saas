@@ -3,7 +3,15 @@
 <head>
     <title>PACHEDU Manager</title>
 </head>
-
+<script>
+setInterval(() => {
+    fetch("/queue")
+    .then(res => res.text())
+    .then(html => {
+        document.getElementById("queue").innerHTML = html;
+    });
+}, 3000);
+</script>
 <body>
 
 {% if login %}
