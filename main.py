@@ -112,3 +112,10 @@ async def add_car(
     })
 
     return RedirectResponse("/dashboard", status_code=302)
+from fastapi.responses import JSONResponse
+
+jobs = []
+
+@app.get("/queue-data")
+def get_queue_data():
+    return JSONResponse(content=jobs)
