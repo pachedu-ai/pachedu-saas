@@ -41,19 +41,12 @@
 </form>
 
 <hr>
+<h2>Current Queue</h2>
 
-<h3>Current Queue</h3>
+<div id="queue">
+    {% include "queue.html" %}
+</div>
 
-<ul>
-{% for car in queue %}
-<li>
-{{ car.reg }} —
-{{ car.service }} —
-{{ car.vehicle }} —
-{{ car.time }} min —
-R{{ car.price }}
-</li>
-{% endfor %}
 </ul>
 
 {% endif %}
