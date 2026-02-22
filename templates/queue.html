@@ -1,0 +1,54 @@
+<div class="queue-container">
+    <h2>Job Queue</h2>
+
+    <table border="1" width="100%" cellpadding="8">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody id="queue-body">
+            {% for job in jobs %}
+            <tr>
+                <td>{{ job.id }}</td>
+                <td>{{ job.status }}</td>
+                <td>{{ job.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">No jobs yet</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Auto refresh queue every 3 seconds
+    setInterval(function () {
+        fetch("/queue-data")
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById("queue-body");
+                tbody.innerHTML = "";
+
+                if (data.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='3'>No jobs yet</td></tr>";
+                    return;
+                }
+
+                data.forEach(job => {
+                    const row = `
+                        <tr>
+                            <td>${job.id}</td>
+                            <td>${job.status}</td>
+                            <td>${job.created_at}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            });
+    }, 3000);
+</script>
