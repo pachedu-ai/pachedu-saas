@@ -1,54 +1,57 @@
-<div class="queue-container">
-    <h2>Job Queue</h2>
+<h2>Current Queue</h2>
 
-    <table border="1" width="100%" cellpadding="8">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Status</th>
-                <th>Created</th>
-            </tr>
-        </thead>
-        <tbody id="queue-body">
-            {% for job in jobs %}
-            <tr>
-                <td>{{ job.id }}</td>
-                <td>{{ job.status }}</td>
-                <td>{{ job.created_at }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3">No jobs yet</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<table border="1" width="100%" cellpadding="8">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Registration</th>
+            <th>Service</th>
+            <th>Vehicle</th>
+            <th>Time</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody id="queue-body">
+        <tr>
+            <td colspan="6">Loading...</td>
+        </tr>
+    </tbody>
+</table>
 
 <script>
-    // Auto refresh queue every 3 seconds
-    setInterval(function () {
-        fetch("/queue-data")
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.getElementById("queue-body");
-                tbody.innerHTML = "";
+async function loadQueue() {
+    try {
+        const response = await fetch("/queue-data");
+        const data = await response.json();
 
-                if (data.length === 0) {
-                    tbody.innerHTML = "<tr><td colspan='3'>No jobs yet</td></tr>";
-                    return;
-                }
+        const tbody = document.getElementById("queue-body");
+        tbody.innerHTML = "";
 
-                data.forEach(job => {
-                    const row = `
-                        <tr>
-                            <td>${job.id}</td>
-                            <td>${job.status}</td>
-                            <td>${job.created_at}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-            });
-    }, 3000);
+        if (!data || data.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='6'>No cars in queue</td></tr>";
+            return;
+        }
+
+        data.forEach(job => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${job.id}</td>
+                <td>${job.reg}</td>
+                <td>${job.service}</td>
+                <td>${job.vehicle}</td>
+                <td>${job.time} mins</td>
+                <td>R${job.price}</td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Queue load error:", error);
+    }
+}
+
+loadQueue();
+setInterval(loadQueue, 3000);
 </script>
