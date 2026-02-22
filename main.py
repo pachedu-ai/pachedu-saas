@@ -1,7 +1,34 @@
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+import os
+from sqlalchemy import create_engine, text
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
+
+# Auto-create tables on startup
+with engine.connect() as conn:
+    conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS cars (
+        id SERIAL PRIMARY KEY,
+        name TEXT,
+        price TEXT,
+        image TEXT
+    );
+    """))
+
+    conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS bookings (
+        id SERIAL PRIMARY KEY,
+        car TEXT,
+        email TEXT,
+        status TEXT DEFAULT 'pending'
+    );
+    """))
+
+    conn.commit()
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
